@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Tool struct{}
@@ -15,9 +16,13 @@ func NewTool() *Tool {
 
 //http 请求
 func (t *Tool) Get(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	client := http.DefaultClient
+	client.Timeout = time.Second * 1200 //设置超时时间
+	resp, err := client.Get(url)
 	if err != nil {
 		fmt.Printf("请求失败： %s \n", err)
+		var ret []byte
+		return ret, err
 	}
 
 	defer resp.Body.Close()
@@ -31,22 +36,29 @@ func (t *Tool) Get(url string) ([]byte, error) {
 
 //ts流文件下载
 func (t *Tool) DownTs(url, name string) {
-	fmt.Println("下载中：", name)
+	_, err := os.Stat(name)
+	if err == nil {
+		fmt.Println("不用下载，文件已存在：", name)
+		return
+	}
+
 	//发出请求
 	str, err := t.Get(url)
 	if err != nil {
 		fmt.Println("下载失败：", name)
+		//TODO 若下载失败需重新加入队列
+		return
+	}
+
+	if ioutil.WriteFile(name, str, 0644) == nil {
+		fmt.Println("下载成功:", name)
 	} else {
-		if ioutil.WriteFile(name, str, 0644) == nil {
-			fmt.Println("下载成功:", name)
-		} else {
-			fmt.Println("写入失败：", name)
-		}
+		fmt.Println("写入失败：", name)
 	}
 }
 
 //把所有ts合并为mp4
-func (t *Tool) Merge(name string) {
+func (t *Tool) Merge(name string, maxIndex int) {
 	fileObj, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("Failed to open the file", err.Error())
@@ -55,13 +67,14 @@ func (t *Tool) Merge(name string) {
 
 	defer fileObj.Close()
 
-	for i := 0; i < 3; i++ {
-		byte, _ := t.ReadTsFile(i)
-		if _, err := fileObj.Write(byte); err == nil {
-			fmt.Println("合并成功：", i)
+	for i := 0; i < maxIndex; i++ {
+		data, _ := t.ReadTsFile(i)
+		if _, err := fileObj.Write(data); err == nil {
+			//fmt.Println("合并成功：", i)
 		}
 	}
 
+	fmt.Println("合并完成：", name)
 }
 
 //读取本地ts文件
