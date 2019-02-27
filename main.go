@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"bufio"
+	"io"
 )
 
 var tool = Tool.NewTool()
@@ -22,16 +24,31 @@ func main() {
 		return
 	}
 
+	f, err := os.Open("./list.txt")
+	if err != nil {
+		fmt.Println("读取list.txt文件失败 ：", err)
+		return
+	}
+
+	defer f.Close()
+
 	videoIndex := 1
 	exitChanLen := 100
-	list := map[int]string{0: "https://youku.cdn-iqiyi.com/20180422/9290_26a5f628/index.m3u8", 1: "https://youku.cdn-iqiyi.com/20180422/9289_5423e173/index.m3u8"}
-	for _, url := range list {
-		tsChan := make(chan tsStruct, 100)
-		exitChan := make(chan bool, exitChanLen)
+	rd := bufio.NewReader(f)
+	for {
+		url, err := rd.ReadString('\n') //以'\n'为结束符读入一行
+		if err != nil || io.EOF == err {
+			break
+		}
 
-		//url := "https://ifeng.com-l-ifeng.com/20190222/27878_b3b9ee0d/index.m3u8"
+		//TODO 校验url格式
 		//获取真实m3u8地址
-		tsFileUrls := strings.Replace(url, "index.m3u8", "1000k/hls/index.m3u8", -1)
+		m3u8 := strings.Replace(url, "index.m3u8", "1000k/hls/index.m3u8", -1)
+		//去除换行符
+		m3u81 := strings.Replace(m3u8, "\n", "", -1)
+		tsFileUrls := strings.Replace(m3u81, "\r", "", -1)
+
+		fmt.Printf("ts:%q",tsFileUrls)
 		//发出请求
 		str, err := tool.Get(tsFileUrls)
 		if err != nil {
@@ -40,7 +57,10 @@ func main() {
 		}
 
 		tsFiles := strings.Split(string(str), "\n")
+
 		var maxIndex int
+		tsChan := make(chan tsStruct, 100)
+		exitChan := make(chan bool, exitChanLen)
 		go writeTsChan(tsFileUrls, tsFiles, tsChan, &maxIndex)
 		//开启读的协程数
 		time.Sleep(time.Millisecond * 100)

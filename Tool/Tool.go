@@ -17,7 +17,7 @@ func NewTool() *Tool {
 //http 请求
 func (t *Tool) Get(url string) ([]byte, error) {
 	client := http.DefaultClient
-	client.Timeout = time.Second * 1200 //设置超时时间
+	client.Timeout = time.Second * 1000 //设置超时时间
 	resp, err := client.Get(url)
 	if err != nil {
 		fmt.Printf("请求失败： %s \n", err)

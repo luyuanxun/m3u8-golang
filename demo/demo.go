@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-
 func main() {
 	//开启读-协程个数
 	chanNum := 10
