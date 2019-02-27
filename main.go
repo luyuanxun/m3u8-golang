@@ -48,7 +48,6 @@ func main() {
 		m3u81 := strings.Replace(m3u8, "\n", "", -1)
 		tsFileUrls := strings.Replace(m3u81, "\r", "", -1)
 
-		fmt.Printf("ts:%q",tsFileUrls)
 		//发出请求
 		str, err := tool.Get(tsFileUrls)
 		if err != nil {
