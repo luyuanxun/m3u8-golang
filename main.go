@@ -75,7 +75,14 @@ func main() {
 
 		fmt.Println("下载完成，总共下载文件数：", maxIndex)
 		//下载完成，合并ts
-		tool.Merge("./download/"+fmt.Sprintf("%d", videoIndex)+".mp4", maxIndex)
+		var fileNameIndex string
+		if videoIndex < 10{
+			fileNameIndex = "0"+ fmt.Sprintf("%d", videoIndex)
+		}else {
+			fileNameIndex = fmt.Sprintf("%d", videoIndex)
+		}
+
+		tool.Merge("./download/"+fileNameIndex+".mp4", maxIndex)
 		videoIndex++
 	}
 }
